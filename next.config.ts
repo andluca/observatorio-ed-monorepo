@@ -1,8 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  reactCompiler: true,
+  experimental: {
+    // reactCompiler: true, // Descomente apenas se tiver certeza que quer usar o compilador experimental
+  },
 };
 
 export default nextConfig;
