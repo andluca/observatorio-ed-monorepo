@@ -3,6 +3,8 @@ import { Plus, Edit, Trash2, FileText, User, BookOpen, FileTextIcon, Users } fro
 import { SignOutButton } from "@/components/admin/sign-out-button";
 import { getDashboardData } from "@/actions/post-actions"; 
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const { posts, stats, user } = await getDashboardData();
 

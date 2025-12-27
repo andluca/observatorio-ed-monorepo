@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { getUsers } from "@/actions/user-actions";
 import { DeleteUserButton } from "@/components/admin/delete-user-button";
-import { UserPlus, Shield, User as UserIcon, ArrowLeft } from "lucide-react";
+import { UserPlus, Shield, User as UserIcon } from "lucide-react";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Gerenciar Usuários | Admin",
