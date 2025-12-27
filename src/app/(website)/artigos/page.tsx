@@ -1,21 +1,17 @@
-import { prisma } from "@/lib/prisma";
+import { getArticlesPageData } from "@/actions/website-actions"; // Importa Action
 import { ArticleCard } from "@/components/website/cards";
-import { BookOpen } from "lucide-react";
 
 export const metadata = {
   title: 'Artigos | OEDLA',
   description: 'Produção científica e artigos acadêmicos do Observatório.',
 }
 
+// Revalidação ISR
+export const revalidate = 60;
+
 export default async function ArticlesPage() {
-  const articles = await prisma.post.findMany({
-    where: { 
-      published: true,
-      type: "ARTICLE" // Filtro apenas para Artigos
-    },
-    orderBy: { createdAt: "desc" },
-    include: { author: true }
-  });
+  // Busca via Action
+  const articles = await getArticlesPageData();
 
   return (
     <div className="bg-gray-50 min-h-screen py-12">
@@ -28,7 +24,7 @@ export default async function ArticlesPage() {
           </p>
         </header>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {articles.length > 0 ? (
             articles.map(post => (
               <ArticleCard key={post.id} post={post} />

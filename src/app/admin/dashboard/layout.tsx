@@ -16,7 +16,7 @@ export default async function DashboardLayout({
   // ---------------------------------------------------------
 
   // 2. Verificação ajustada
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session) {
     // Adicionei um return null aqui para evitar renderização flash antes do redirect
     redirect("/admin");
   }

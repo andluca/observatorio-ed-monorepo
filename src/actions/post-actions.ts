@@ -5,7 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { generateSlug } from "@/lib/utils";
-import { createPostSchema, updatePostSchema, CreatePostInput, UpdatePostInput } from "@/lib/schemas";
+import {
+  createPostSchema,
+  updatePostSchema,
+  CreatePostInput,
+  UpdatePostInput,
+} from "@/lib/schemas";
 
 async function getAdminSession() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -15,7 +20,6 @@ async function getAdminSession() {
   return session;
 }
 
-// --- NOVA ACTION DE LEITURA PARA O EDITOR ---
 export async function getPostForEdit(id: string) {
   await getAdminSession(); // Garante segurança
 
@@ -28,9 +32,12 @@ export async function getPostForEdit(id: string) {
 
 export async function createPost(data: CreatePostInput) {
   const validation = createPostSchema.safeParse(data);
-  
+
   if (!validation.success) {
-    return { error: "Dados inválidos", fieldErrors: validation.error.flatten().fieldErrors };
+    return {
+      error: "Dados inválidos",
+      fieldErrors: validation.error.flatten().fieldErrors,
+    };
   }
 
   const validData = validation.data;
@@ -39,7 +46,9 @@ export async function createPost(data: CreatePostInput) {
     const session = await getAdminSession();
 
     const baseSlug = generateSlug(validData.title);
-    const existingSlug = await prisma.post.findUnique({ where: { slug: baseSlug } });
+    const existingSlug = await prisma.post.findUnique({
+      where: { slug: baseSlug },
+    });
     const finalSlug = existingSlug ? `${baseSlug}-${Date.now()}` : baseSlug;
 
     const newPost = await prisma.post.create({
@@ -62,9 +71,8 @@ export async function createPost(data: CreatePostInput) {
 
     revalidatePath("/admin/dashboard");
     revalidatePath("/");
-    
-    return { success: true, post: newPost };
 
+    return { success: true, post: newPost };
   } catch (error: any) {
     console.error("Erro ao criar post:", error);
     return { error: error.message || "Erro interno." };
@@ -75,13 +83,30 @@ export async function updatePost(data: UpdatePostInput) {
   const validation = updatePostSchema.safeParse(data);
 
   if (!validation.success) {
-    return { error: "Dados inválidos", fieldErrors: validation.error.flatten().fieldErrors };
+    return {
+      error: "Dados inválidos",
+      fieldErrors: validation.error.flatten().fieldErrors,
+    };
   }
 
   const validData = validation.data;
 
   try {
-    await getAdminSession();
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session) throw new Error("Não autorizado");
+
+    const existingPost = await prisma.post.findUnique({
+      where: { id: validData.id },
+    });
+
+    if (!existingPost) return { error: "Post não encontrado" };
+
+    const isAdmin = session.user.role === "ADMIN";
+    const isOwner = existingPost.authorId === session.user.id;
+
+    if (!isAdmin && !isOwner) {
+      return { error: "Você não tem permissão para editar este post." };
+    }
 
     const updatedPost = await prisma.post.update({
       where: { id: validData.id },
@@ -105,9 +130,33 @@ export async function updatePost(data: UpdatePostInput) {
     revalidatePath(`/blog/${updatedPost.slug}`);
 
     return { success: true, post: updatedPost };
-
   } catch (error: any) {
     console.error("Erro ao atualizar post:", error);
     return { error: error.message || "Erro interno." };
   }
+}
+
+export async function getDashboardData() {
+  const session = await auth.api.getSession({ headers: await headers() });
+
+  if (!session) throw new Error("Não autorizado");
+
+  const whereCondition =
+    session.user.role === "ADMIN" ? {} : { authorId: session.user.id };
+
+  const posts = await prisma.post.findMany({
+    where: whereCondition,
+    orderBy: { createdAt: "desc" },
+    include: { author: true },
+  });
+
+  const totalPosts = posts.length;
+  const publishedPosts = posts.filter((p) => p.published).length;
+  const draftPosts = totalPosts - publishedPosts;
+
+  return {
+    posts,
+    stats: { totalPosts, publishedPosts, draftPosts },
+    user: session.user,
+  };
 }

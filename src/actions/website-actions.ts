@@ -43,14 +43,13 @@ export async function getHomepageData() {
     where: { 
       published: true, 
       type: "TEXT",
-      id: { not: featuredPost.id } // <--- O PULO DO GATO
+      id: { not: featuredPost.id }
     },
     include: { author: true },
     orderBy: { createdAt: "desc" },
     take: ITEMS_PER_PAGE,
   });
 
-  // 4. Verifica se tem mais para o botão "Carregar Mais"
   const totalCount = await prisma.post.count({
     where: { 
       published: true, 
@@ -64,10 +63,6 @@ export async function getHomepageData() {
   return { featuredPost, initialGridPosts, hasMore };
 }
 
-/**
- * Busca páginas seguintes do grid (Client Side chama isso)
- * Precisa receber o excludeId (ID do destaque) para manter a consistência.
- */
 export async function getPaginatedTexts(page: number, excludeId?: string) {
   const skip = (page - 1) * ITEMS_PER_PAGE;
 
@@ -94,4 +89,38 @@ export async function getPaginatedTexts(page: number, excludeId?: string) {
   const hasMore = totalCount > skip + posts.length;
 
   return { posts, hasMore };
+}
+
+export async function getArticlesPageData() {
+  return await prisma.post.findMany({
+    where: { 
+      published: true,
+      type: "ARTICLE"
+    },
+    orderBy: { createdAt: "desc" },
+    include: { author: true }
+  });
+}
+
+export async function getPostBySlug(slug: string) {
+  return await prisma.post.findUnique({
+    where: { 
+      slug,
+      published: true 
+    },
+    include: { author: true }
+  });
+}
+
+export async function getRelatedPosts(currentPostId: string, type: string) {
+  return await prisma.post.findMany({
+    where: { 
+      published: true,
+      id: { not: currentPostId },
+      type: type 
+    },
+    take: 3,
+    orderBy: { createdAt: "desc" },
+    include: { author: true }
+  });
 }

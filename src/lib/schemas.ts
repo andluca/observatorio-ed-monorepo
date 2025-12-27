@@ -39,3 +39,22 @@ export const uploadSchema = z.instanceof(File, { message: "O arquivo enviado é 
     (file) => ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type),
     "Apenas arquivos de imagem (JPG, PNG, WEBP, GIF) são permitidos"
   );
+
+  export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Senha atual é obrigatória"),
+  newPassword: z.string().min(8, "A nova senha deve ter no mínimo 8 caracteres"),
+  confirmPassword: z.string().min(1, "Confirmação é obrigatória"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "As senhas não coincidem",
+  path: ["confirmPassword"],
+});
+
+export const createUserSchema = z.object({
+  name: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
+  email: z.string().email("Email inválido"),
+  password: z.string().min(8, "Senha deve ter no mínimo 8 caracteres"),
+  role: z.enum(["ADMIN", "USER"]).default("USER"),
+});
+
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+export type CreateUserInput = z.infer<typeof createUserSchema>;
