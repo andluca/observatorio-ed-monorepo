@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useEditor, EditorContent, Editor, Extension } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -21,7 +21,7 @@ import {
 import { createPost, updatePost } from '@/actions/post-actions';
 import { uploadImage } from '@/actions/upload-action';
 import { CreatePostInput, UpdatePostInput } from '@/lib/schemas';
-import { Post } from '@/types/post';
+import { Post } from '@prisma/client';
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -144,15 +144,21 @@ interface PostEditorProps {
 export function PostEditor({ initialData }: PostEditorProps) {
   const router = useRouter();
 
+  const STORAGE_KEY = initialData?.id ? `draft_post_${initialData.id}` : 'draft_new_post';
+
   const [title, setTitle] = useState(initialData?.title || '');
   const [categories, setCategories] = useState<string[]>(initialData?.categories || []);
   const [coverImage, setCoverImage] = useState<string>(initialData?.coverImage || '');
-  const [type, setType] = useState<"ARTICLE" | "TEXT">(
-    (initialData?.type as "ARTICLE" | "TEXT") || "ARTICLE"
-  );
+  const [type, setType] = useState<"ARTICLE" | "TEXT">((initialData?.type as "ARTICLE" | "TEXT") || "ARTICLE");
+  
+  const [excerpt, setExcerpt] = useState(initialData?.excerpt || '');
+  const [readTime, setReadTime] = useState(initialData?.readTime || 5);
+  const [featured, setFeatured] = useState(initialData?.featured || false);
+  const [tagsInput, setTagsInput] = useState(initialData?.tags?.join(', ') || ''); // String para edição
 
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isRestored, setIsRestored] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -182,7 +188,63 @@ export function PostEditor({ initialData }: PostEditorProps) {
       },
     },
     immediatelyRender: false,
+    onUpdate: ({ editor }) => {
+       saveToLocalStorage({ content: editor.getHTML() });
+    }
   });
+
+  const saveToLocalStorage = (partialData: Record<string, any>) => {
+    const currentSaved = localStorage.getItem(STORAGE_KEY);
+    const parsedSaved = currentSaved ? JSON.parse(currentSaved) : {};
+
+    const newData = { ...parsedSaved, ...partialData, updatedAt: Date.now() };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newData));
+  };
+
+  useEffect(() => {
+    saveToLocalStorage({
+      title,
+      categories,
+      coverImage,
+      type,
+      excerpt,
+      readTime,
+      featured,
+      tagsInput
+    });
+  }, [title, categories, coverImage, type, excerpt, readTime, featured, tagsInput]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    
+    if (!saved) return;
+
+    try {
+      const parsed = JSON.parse(saved);
+      
+      parsed.title && setTitle(parsed.title);
+      parsed.categories && setCategories(parsed.categories);
+      parsed.coverImage && setCoverImage(parsed.coverImage);
+      parsed.type && setType(parsed.type);
+      parsed.excerpt && setExcerpt(parsed.excerpt);
+      parsed.readTime && setReadTime(parsed.readTime);
+      parsed.tagsInput && setTagsInput(parsed.tagsInput);
+      
+      if (parsed.featured !== undefined) setFeatured(parsed.featured);
+
+      if (editor && parsed.content && parsed.content !== initialData?.content) {
+        editor.commands.setContent(parsed.content);
+      }
+
+      setIsRestored(true);
+      const timer = setTimeout(() => setIsRestored(false), 3000);
+      return () => clearTimeout(timer); // Cleanup do timer
+
+    } catch (e) {
+      console.error("Erro ao ler rascunho, limpando cache corrompido...");
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [editor, STORAGE_KEY, initialData]);
 
   const handleUpload = async (file: File): Promise<string | null> => {
     setIsUploading(true);
@@ -236,6 +298,9 @@ export function PostEditor({ initialData }: PostEditorProps) {
     setIsLoading(true);
 
     const contentHTML = editor.getHTML();
+    
+    const tagsArray = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
+
     let result;
 
     if (initialData?.id) {
@@ -247,6 +312,11 @@ export function PostEditor({ initialData }: PostEditorProps) {
         categories,
         coverImage: coverImage || null,
         type,
+        // Novos campos
+        excerpt,
+        featured,
+        readTime,
+        tags: tagsArray,
       };
       result = await updatePost(payload);
     } else {
@@ -257,6 +327,11 @@ export function PostEditor({ initialData }: PostEditorProps) {
         categories,
         coverImage: coverImage || null,
         type,
+        // Novos campos
+        excerpt,
+        featured,
+        readTime,
+        tags: tagsArray,
       };
       result = await createPost(payload);
     }
@@ -270,7 +345,6 @@ export function PostEditor({ initialData }: PostEditorProps) {
       router.refresh();
     }
   };
-
   return (
     <div className="min-h-screen bg-[#F5F3EB] pb-20">
       <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
@@ -322,7 +396,61 @@ export function PostEditor({ initialData }: PostEditorProps) {
             </div>
           </div>
 
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-3 space-y-6 text-gray-700">
+            
+            <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+              <h3 className="text-sm font-bold text-gray-900 mb-4">Publicação</h3>
+              <div className="space-y-3">
+                <button
+                  onClick={() => handleSave(false)}
+                  disabled={isLoading}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all disabled:opacity-50"
+                >
+                  {isLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <Save className="w-4 h-4" />}
+                  Salvar como Rascunho
+                </button>
+
+                <button
+                  onClick={() => handleSave(true)}
+                  disabled={isLoading}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-[#FFC700] hover:bg-[#E5B300] border border-transparent rounded-md text-sm font-bold text-black shadow-sm transition-all disabled:opacity-50"
+                >
+                  {isLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  Publicar
+                </button>
+              </div>
+            </div>
+
+             {/* 2. Destaque & Leitura (NOVO) */}
+             <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm space-y-4">
+               <h3 className="text-sm font-bold text-gray-900 border-b pb-2 mb-2">Configurações</h3>
+               
+               {/* Destaque Toggle */}
+               <label className="flex items-center gap-3 cursor-pointer select-none">
+                 <div className="relative">
+                   <input 
+                     type="checkbox" 
+                     checked={featured} 
+                     onChange={(e) => setFeatured(e.target.checked)}
+                     className="sr-only peer"
+                   />
+                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FFC700]"></div>
+                 </div>
+                 <span className="text-sm font-medium text-gray-700">Destaque na Home</span>
+               </label>
+
+               {/* Tempo de Leitura */}
+               <div>
+                 <label className="text-xs font-semibold text-gray-700 mb-1 block">Tempo de Leitura (min)</label>
+                 <input 
+                   type="number"
+                   min="1"
+                   value={readTime}
+                   onChange={(e) => setReadTime(parseInt(e.target.value) || 0)}
+                   className="w-full p-2 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-[#FFC700] outline-none"
+                 />
+               </div>
+             </div>
             <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
               <h3 className="text-sm font-bold text-gray-900 mb-4">Tipo de Conteúdo</h3>
               <div className="space-y-3">
@@ -356,27 +484,16 @@ export function PostEditor({ initialData }: PostEditorProps) {
               </div>
             </div>
             <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-              <h3 className="text-sm font-bold text-gray-900 mb-4">Publicação</h3>
-              <div className="space-y-3">
-                <button
-                  onClick={() => handleSave(false)}
-                  disabled={isLoading}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all disabled:opacity-50"
-                >
-                  {isLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <Save className="w-4 h-4" />}
-                  Salvar como Rascunho
-                </button>
-
-                <button
-                  onClick={() => handleSave(true)}
-                  disabled={isLoading}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-[#FFC700] hover:bg-[#E5B300] border border-transparent rounded-md text-sm font-bold text-black shadow-sm transition-all disabled:opacity-50"
-                >
-                  {isLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  Publicar
-                </button>
-              </div>
+               <h3 className="text-sm font-bold text-gray-900 mb-2">Resumo (Excerpt)</h3>
+               <p className="text-xs text-gray-500 mb-2">Texto curto para o card. Evita cortes.</p>
+               <textarea 
+                 value={excerpt}
+                 onChange={(e) => setExcerpt(e.target.value)}
+                 className="w-full h-24 p-3 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-[#FFC700] outline-none resize-none"
+                 placeholder="Digite um resumo..."
+               />
             </div>
+
 
             <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
               <h3 className="text-sm font-bold text-gray-900 mb-4">Imagem de Destaque</h3>
@@ -409,6 +526,18 @@ export function PostEditor({ initialData }: PostEditorProps) {
                   {coverImage ? 'Imagem definida' : 'Nenhuma imagem selecionada'}
                 </div>
               </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+               <h3 className="text-sm font-bold text-gray-900 mb-2">Tags</h3>
+               <input 
+                 type="text"
+                 value={tagsInput}
+                 onChange={(e) => setTagsInput(e.target.value)}
+                 placeholder="política, economia, brasil"
+                 className="w-full p-2 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-[#FFC700] outline-none"
+               />
+               <p className="text-xs text-gray-400 mt-1">Separe por vírgulas.</p>
             </div>
 
             <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">

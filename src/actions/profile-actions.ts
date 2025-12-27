@@ -46,3 +46,17 @@ export async function updateProfile(data: ProfileInput) {
     return { error: "Erro interno ao salvar perfil." };
   }
 }
+
+export async function getCurrentUser() {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session) return null;
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id }
+    });
+    return user;
+  } catch (error) {
+    console.error("Erro ao buscar usuário:", error);
+    return null;
+  }
+}

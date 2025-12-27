@@ -19,12 +19,9 @@ export default async function ArticlesPage() {
 
   return (
     <div className="bg-gray-50 min-h-screen py-12">
-      <div className="max-w-4xl mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4 w-[90%]">
         
         <header className="mb-12 text-center">
-          <div className="inline-flex items-center justify-center p-3 bg-white rounded-full shadow-sm mb-4">
-            <BookOpen size={32} className="text-[#FFC700]" />
-          </div>
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Artigos & Produção Científica</h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
             Acesse nossa coleção de pesquisas aprofundadas, teses e dissertações sobre o fenômeno da extrema direita.

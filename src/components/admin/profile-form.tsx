@@ -72,12 +72,12 @@ export function ProfileForm({ user }: ProfileFormProps) {
           </div>
           <label className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 group-hover:opacity-100 rounded-full cursor-pointer transition-opacity font-xs font-medium">
             {isUploading ? <Loader2 className="animate-spin w-5 h-5"/> : <Upload className="w-5 h-5"/>}
-            <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} disabled={isUploading}/>
+            <input type="file" className="hidden text-gray-700" accept="image/*" onChange={handleAvatarUpload} disabled={isUploading}/>
           </label>
         </div>
         
         <div className="flex-1">
-          <h3 className="text-sm font-medium text-gray-900">Foto de Perfil</h3>
+          <h3 className="text-sm font-medium text-gray-700">Foto de Perfil</h3>
           <p className="text-xs text-gray-500 mt-1">Recomendado: 400x400px. JPG ou PNG.</p>
         </div>
       </div>
@@ -90,7 +90,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#FFC700] outline-none"
+            className="w-full p-2 border border-gray-300 text-gray-700 rounded-md focus:ring-2 focus:ring-[#FFC700] outline-none"
             placeholder="Como seu nome aparecerá nos posts"
           />
         </div>
@@ -101,7 +101,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
           <input 
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#FFC700] outline-none"
+            className="w-full p-2 border border-gray-300 text-gray-700 rounded-md focus:ring-2 focus:ring-[#FFC700] outline-none"
             placeholder="Ex: Dr. em Ciência Política, Pesquisador..."
           />
         </div>
@@ -114,7 +114,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           rows={4}
-          className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#FFC700] outline-none resize-none"
+          className="w-full p-2 border text-gray-700 border-gray-300 rounded-md focus:ring-2 focus:ring-[#FFC700] outline-none resize-none"
           placeholder="Um resumo curto sobre sua carreira acadêmica e interesses de pesquisa..."
         />
         <p className="text-xs text-gray-500 text-right">{bio.length}/500 caracteres</p>

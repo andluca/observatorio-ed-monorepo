@@ -1,26 +1,25 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { ProfileForm } from "@/components/admin/profile-form";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { getCurrentUser } from "@/actions/profile-actions";
 
 export default async function ProfilePage() {
-  const session = await auth.api.getSession({ headers: await headers() });
-
-  if (!session) {
+  const user = await getCurrentUser();
+  if (!user) {
     redirect("/admin");
   }
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id }
-  });
-
-  if (!user) return <div>Usuário não encontrado</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10 h-16 flex items-center px-8 max-w-7xl mx-auto">
-        <h1 className="text-xl font-bold text-gray-900">Meu Perfil</h1>
+        <Link
+          href="/admin/dashboard"
+          className="flex items-center text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors mr-4"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Voltar ao Dashboard
+        </Link>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-8">
@@ -31,7 +30,6 @@ export default async function ProfilePage() {
               Esses dados aparecerão publicamente nos artigos que você escrever.
             </p>
           </div>
-          
           <div className="p-6">
             <ProfileForm user={user} />
           </div>

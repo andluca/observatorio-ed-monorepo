@@ -7,7 +7,6 @@ import { revalidatePath } from "next/cache";
 import { generateSlug } from "@/lib/utils";
 import { createPostSchema, updatePostSchema, CreatePostInput, UpdatePostInput } from "@/lib/schemas";
 
-// Helper de Segurança
 async function getAdminSession() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session || session.user.role !== "ADMIN") {
@@ -16,15 +15,22 @@ async function getAdminSession() {
   return session;
 }
 
+// --- NOVA ACTION DE LEITURA PARA O EDITOR ---
+export async function getPostForEdit(id: string) {
+  await getAdminSession(); // Garante segurança
+
+  const post = await prisma.post.findUnique({
+    where: { id },
+  });
+
+  return post;
+}
+
 export async function createPost(data: CreatePostInput) {
-  // 1. Validação Zod
   const validation = createPostSchema.safeParse(data);
   
   if (!validation.success) {
-    return { 
-      error: "Dados inválidos", 
-      fieldErrors: validation.error.flatten().fieldErrors 
-    };
+    return { error: "Dados inválidos", fieldErrors: validation.error.flatten().fieldErrors };
   }
 
   const validData = validation.data;
@@ -32,7 +38,6 @@ export async function createPost(data: CreatePostInput) {
   try {
     const session = await getAdminSession();
 
-    // Lógica de Slug
     const baseSlug = generateSlug(validData.title);
     const existingSlug = await prisma.post.findUnique({ where: { slug: baseSlug } });
     const finalSlug = existingSlug ? `${baseSlug}-${Date.now()}` : baseSlug;
@@ -47,6 +52,11 @@ export async function createPost(data: CreatePostInput) {
         slug: finalSlug,
         authorId: session.user.id,
         type: validData.type,
+        // Novos campos
+        excerpt: validData.excerpt,
+        featured: validData.featured,
+        readTime: validData.readTime,
+        tags: validData.tags,
       },
     });
 
@@ -57,19 +67,15 @@ export async function createPost(data: CreatePostInput) {
 
   } catch (error: any) {
     console.error("Erro ao criar post:", error);
-    return { error: error.message || "Erro interno ao criar post." };
+    return { error: error.message || "Erro interno." };
   }
 }
 
 export async function updatePost(data: UpdatePostInput) {
-  // 1. Validação Zod
   const validation = updatePostSchema.safeParse(data);
 
   if (!validation.success) {
-    return { 
-      error: "Dados inválidos", 
-      fieldErrors: validation.error.flatten().fieldErrors 
-    };
+    return { error: "Dados inválidos", fieldErrors: validation.error.flatten().fieldErrors };
   }
 
   const validData = validation.data;
@@ -86,6 +92,11 @@ export async function updatePost(data: UpdatePostInput) {
         categories: validData.categories,
         published: validData.published,
         type: validData.type,
+        // Novos campos sendo atualizados
+        excerpt: validData.excerpt,
+        featured: validData.featured,
+        readTime: validData.readTime,
+        tags: validData.tags,
       },
     });
 
@@ -97,6 +108,6 @@ export async function updatePost(data: UpdatePostInput) {
 
   } catch (error: any) {
     console.error("Erro ao atualizar post:", error);
-    return { error: error.message || "Erro interno ao atualizar post." };
+    return { error: error.message || "Erro interno." };
   }
 }

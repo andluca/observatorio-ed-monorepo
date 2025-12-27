@@ -1,4 +1,4 @@
-// "use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -25,10 +25,10 @@ export function WebsiteHeader() {
           
           {/* Logo Box Amarelo */}
           <Link href="/" className="flex items-center cursor-pointer group">
-            <div className="bg-[#FFC700] px-3 py-2 rounded transition-transform duration-200 group-hover:scale-105">
+            <div className="bg-[#FFC700] px-3 py-2 transition-transform duration-200 group-hover:scale-105">
               <h1 className="text-lg font-bold text-black leading-tight">
                 OBSERVATÓRIO DA<br />
-                <span className="text-xl font-black">EXTREMA DIREITA</span><br />
+                <span className="text-xl font-bold">EXTREMA DIREITA</span><br />
                 <span className="text-base font-bold">LATINO-AMERICANA</span>
               </h1>
             </div>

@@ -10,6 +10,10 @@ export const createPostSchema = z.object({
   type: z.enum(["ARTICLE", "TEXT"], {
     required_error: "Selecione o tipo de publicação",
   }).default("ARTICLE"),
+  excerpt: z.string().optional(),
+  featured: z.boolean().default(false),
+  readTime: z.coerce.number().min(1).default(5),
+  tags: z.array(z.string()).default([]),
 });
 
 export const updatePostSchema = createPostSchema.extend({
