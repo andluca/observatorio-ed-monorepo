@@ -8,7 +8,7 @@ import { uploadImage } from "@/actions/upload-action";
 import { Loader2, Save, Upload, User as UserIcon, Lock, CheckCircle2, AlertCircle } from "lucide-react";
 
 interface ProfileFormProps {
-  user: User;
+  user: Partial<User>;
 }
 
 export function ProfileForm({ user }: ProfileFormProps) {

@@ -4,15 +4,20 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { profileSchema, ProfileInput, ChangePasswordInput, changePasswordSchema } from "@/lib/schemas";
+import {
+  profileSchema,
+  ProfileInput,
+  ChangePasswordInput,
+  changePasswordSchema,
+} from "@/lib/schemas";
 
 export async function updateProfile(data: ProfileInput) {
   const validation = profileSchema.safeParse(data);
 
   if (!validation.success) {
-    return { 
-      error: "Dados do perfil inválidos", 
-      fieldErrors: validation.error.flatten().fieldErrors 
+    return {
+      error: "Dados do perfil inválidos",
+      fieldErrors: validation.error.flatten().fieldErrors,
     };
   }
 
@@ -20,7 +25,7 @@ export async function updateProfile(data: ProfileInput) {
 
   try {
     const session = await auth.api.getSession({ headers: await headers() });
-    
+
     if (!session) {
       return { error: "Você precisa estar logado." };
     }
@@ -31,16 +36,15 @@ export async function updateProfile(data: ProfileInput) {
         name: validData.name,
         bio: validData.bio,
         professionalTitle: validData.professionalTitle,
-        image: validData.image || null
-      }
+        image: validData.image || null,
+      },
     });
 
     revalidatePath("/admin/profile");
     revalidatePath("/admin/dashboard");
     revalidatePath("/");
-    
-    return { success: true };
 
+    return { success: true };
   } catch (error: any) {
     console.error("Erro ao atualizar perfil:", error);
     return { error: "Erro interno ao salvar perfil." };
@@ -52,7 +56,16 @@ export async function getCurrentUser() {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session) return null;
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id }
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        bio: true,
+        professionalTitle: true,
+        role: true,
+      },
     });
     return user;
   } catch (error) {
@@ -65,14 +78,17 @@ export async function changePassword(data: ChangePasswordInput) {
   const validation = changePasswordSchema.safeParse(data);
 
   if (!validation.success) {
-    return { error: "Dados inválidos", fieldErrors: validation.error.flatten().fieldErrors };
+    return {
+      error: "Dados inválidos",
+      fieldErrors: validation.error.flatten().fieldErrors,
+    };
   }
 
   const { currentPassword, newPassword } = validation.data;
 
   try {
     const session = await auth.api.getSession({ headers: await headers() });
-    
+
     if (!session) {
       return { error: "Sessão expirada." };
     }
@@ -86,14 +102,17 @@ export async function changePassword(data: ChangePasswordInput) {
       headers: await headers(),
     });
 
-     if (!result.token) {
-       return { error: "Não foi possível alterar a senha. Verifique a senha atual." }; 
-     }
+    if (!result.token) {
+      return {
+        error: "Não foi possível alterar a senha. Verifique a senha atual.",
+      };
+    }
 
     return { success: true };
-
   } catch (error: any) {
     console.error("Erro ao trocar senha:", error);
-    return { error: error.body?.message || "Senha atual incorreta ou erro interno." };
+    return {
+      error: error.body?.message || "Senha atual incorreta ou erro interno.",
+    };
   }
 }

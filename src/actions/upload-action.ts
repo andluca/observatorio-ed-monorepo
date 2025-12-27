@@ -13,7 +13,7 @@ cloudinary.config({
 
 export async function uploadImage(formData: FormData) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session) {
     return { error: "Não autorizado" };
   }
 

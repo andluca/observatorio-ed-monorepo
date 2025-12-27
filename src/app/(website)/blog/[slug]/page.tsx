@@ -2,8 +2,9 @@ import { notFound } from "next/navigation";
 import { Calendar, User, Clock, Share2 } from "lucide-react";
 import { Metadata } from "next";
 import { TextCard } from "@/components/website/cards";
-import { ShareButtons } from "@/components/website/share-buttons"; // <--- Import Novo
+import { ShareButtons } from "@/components/website/share-buttons";
 import { getPostBySlug, getRelatedPosts } from "@/actions/website-actions";
+import { SafeHtml } from "@/components/safe-html";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -28,7 +29,6 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const publishDate = new Date(post.createdAt).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
   const authorName = post.author.name || "Equipe OEDLA";
   
-  // Define a URL base. Em produção deve ser a URL real do site.
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const postUrl = `${baseUrl}/blog/${post.slug}`;
 
@@ -94,7 +94,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           prose-headings:text-gray-900 prose-headings:font-bold 
           prose-a:text-[#FFC700] prose-a:no-underline hover:prose-a:underline
           prose-img:rounded-lg prose-img:shadow-md mb-16">
-          <div dangerouslySetInnerHTML={{ __html: post.content }} />
+          <SafeHtml html={post.content} />
         </article>
 
         {/* COMPARTILHAMENTO (Corrigido) */}

@@ -147,7 +147,13 @@ export async function getDashboardData() {
   const posts = await prisma.post.findMany({
     where: whereCondition,
     orderBy: { createdAt: "desc" },
-    include: { author: true },
+    include: { author: {
+            select: {
+                name: true,
+                image: true,
+                email: session.user.role === "ADMIN" ? true : false 
+            }
+        } },
   });
 
   const totalPosts = posts.length;

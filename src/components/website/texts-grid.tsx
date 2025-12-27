@@ -6,7 +6,15 @@ import { getPaginatedTexts } from "@/actions/website-actions";
 import { Loader2, Plus } from "lucide-react";
 import { Prisma } from "@prisma/client";
 
-type PostWithAuthor = Prisma.PostGetPayload<{ include: { author: true } }>
+const AUTHOR_SELECT = {
+  select: {
+    name: true,
+    image: true,
+    professionalTitle: true,
+  }
+};
+
+type PostWithAuthor = Prisma.PostGetPayload<{ include: { author:  typeof AUTHOR_SELECT } }>
 
 interface TextGridProps {
   initialPosts: PostWithAuthor[];
