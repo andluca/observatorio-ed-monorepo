@@ -11,6 +11,7 @@ import {
   CreatePostInput,
   UpdatePostInput,
 } from "@/lib/schemas";
+import { get } from "http";
 
 async function getAdminSession() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -20,8 +21,16 @@ async function getAdminSession() {
   return session;
 }
 
+async function getSession() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) {
+    throw new Error("Acesso não autorizado.");
+  }
+  return session;
+}
+
 export async function getPostForEdit(id: string) {
-  await getAdminSession(); // Garante segurança
+  await getSession(); // Garante segurança
 
   const post = await prisma.post.findUnique({
     where: { id },
@@ -43,7 +52,7 @@ export async function createPost(data: CreatePostInput) {
   const validData = validation.data;
 
   try {
-    const session = await getAdminSession();
+    const session = await getSession();
 
     const baseSlug = generateSlug(validData.title);
     const existingSlug = await prisma.post.findUnique({
@@ -92,8 +101,7 @@ export async function updatePost(data: UpdatePostInput) {
   const validData = validation.data;
 
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) throw new Error("Não autorizado");
+    const session = await getSession();
 
     const existingPost = await prisma.post.findUnique({
       where: { id: validData.id },
@@ -137,9 +145,7 @@ export async function updatePost(data: UpdatePostInput) {
 }
 
 export async function getDashboardData() {
-  const session = await auth.api.getSession({ headers: await headers() });
-
-  if (!session) throw new Error("Não autorizado");
+  const session = await getSession();
 
   const whereCondition =
     session.user.role === "ADMIN" ? {} : { authorId: session.user.id };
