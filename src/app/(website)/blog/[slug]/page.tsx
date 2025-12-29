@@ -29,7 +29,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const publishDate = new Date(post.createdAt).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
   const authorName = post.author.name || "Equipe OEDLA";
   
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const baseUrl = process.env.BETTER_AUTH_URL || "https://www.oedla.com";
   const postUrl = `${baseUrl}/blog/${post.slug}`;
 
   const TextHeader = () => (
